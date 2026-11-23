@@ -5,10 +5,15 @@
 set -euo pipefail
 
 DOMINIO="${1:-}"
+MODO_IP=0
 if [ -z "$DOMINIO" ]; then
-  echo "Informe o dominio. Exemplo:"
-  echo "  curl -fsSL https://raw.githubusercontent.com/THEIMPORTS/grupos-anatechmg/main/instalar.sh | bash -s grupos.anatechmg.com.br"
-  exit 1
+  DOMINIO=$(curl -fsS --max-time 10 https://api.ipify.org || curl -fsS --max-time 10 https://ifconfig.me || true)
+  if [ -z "$DOMINIO" ]; then
+    echo "Nao consegui detectar o IP publico. Rode passando o dominio:"
+    echo "  bash instalar.sh grupos.anatechmg.com.br"
+    exit 1
+  fi
+  MODO_IP=1
 fi
 
 echo "==> 1/6 preparando o sistema"
@@ -56,7 +61,15 @@ sudo docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --
 
 echo
 echo "======================================================"
-echo "Sistema no ar. Abra: https://$DOMINIO/install.php"
+if [ "$MODO_IP" = "1" ]; then
+  echo "Sistema no ar. Abra agora: http://$DOMINIO/install.php"
+  echo
+  echo "Quando quiser o endereco com HTTPS e dominio:"
+  echo "  1. crie o registro A do dominio apontando para $DOMINIO"
+  echo "  2. rode: bash deploy/ativar-https.sh SEU-DOMINIO"
+else
+  echo "Sistema no ar. Abra: https://$DOMINIO/install.php"
+fi
 echo
 echo "Dados do banco para preencher no instalador:"
 echo "  Host: db      Porta: 3306"
